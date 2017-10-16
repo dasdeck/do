@@ -1,10 +1,13 @@
 'use strict';
 import * as vscode from 'vscode';
+import ActionDispatcher from './ActionDispatcher';
+
+const actionDispatcher = new ActionDispatcher();
 
 export function activate(context: vscode.ExtensionContext) {
 
-    let disposable = vscode.commands.registerCommand('do', () => {
-        vscode.window.showInformationMessage('Hello World!');
+    let disposable = vscode.commands.registerCommand('do', (args) => {
+        actionDispatcher.dispatchAction(args);
     });
 
     context.subscriptions.push(disposable);

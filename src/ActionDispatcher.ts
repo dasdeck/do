@@ -16,12 +16,12 @@ export default class ActionDispatcher {
     private allCommands: Array<string> = null;
     private tempActions = {};
 
-    public dispatchAction(action, done) {
+    public dispatchAction(action: Array<any> | Object | String, done?: (result) => (any)) {
 
         if (!this.allCommands) {
             this.loadCommands(() => {
                 this.dispatchAction(action, done);
-            })
+            });
         }
         else {
             if (Array.isArray(action)) {
@@ -49,10 +49,10 @@ export default class ActionDispatcher {
         }
         list.forEach(action => {
             jobs.push(done => this.dispatchAction(action, done));
-        })
+        });
         if (done) {
             jobs.push(() => {
-                done()
+                done();
             });
         }
         async.series(jobs);
@@ -82,7 +82,7 @@ export default class ActionDispatcher {
                 break;
             case 'eval':
                 eval(action.command);
-                done()
+                done();
                 break;
             case 'task':
                 this.dispatchAction({
@@ -110,7 +110,7 @@ export default class ActionDispatcher {
             if (done) {
                 done();
             }
-        })
+        });
     }
 
     resolveConfigVars(input) {
@@ -122,7 +122,7 @@ export default class ActionDispatcher {
         Object.keys(map).forEach(needle => {
             const replace = map[needle];
             input = input.split(needle).join(replace);
-        })
+        });
         return input;
     }
 }

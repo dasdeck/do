@@ -1,3 +1,5 @@
+/* eslint-env mocha */
+
 import ActionDispatcher from '../ActionDispatcher';
 import { cloneDeep, last } from 'lodash';
 import * as sinon from 'sinon';
@@ -19,7 +21,7 @@ describe('ActionDispatcher', () => {
         shellSpy.reset();
         dispatcher = new ActionDispatcher();
         dispatcher.getSettings = sinon.stub().returns(mockSettings);
-    })
+    });
 
     it('simple string command, shell settings', (done) => {
 
@@ -54,6 +56,6 @@ describe('ActionDispatcher', () => {
             assert.equal(commandSpy.callCount, 2);
             done();
         });
-    })
+    });
 
-})
+});
