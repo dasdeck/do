@@ -9,7 +9,7 @@ export default class ActionDispatcher {
         return vscode.workspace.getConfiguration('do');
 
     }
-    private get settings(): any {
+    public get settings(): any {
         return this.getSettings();
     }
 

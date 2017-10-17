@@ -1,14 +1,18 @@
 'use strict';
 import * as vscode from 'vscode';
-import ActionDispatcher from './ActionDispatcher';
+import Do from './Do';
 
-const actionDispatcher = new ActionDispatcher();
+const doInstance = new Do();
 
 export function activate(context: vscode.ExtensionContext) {
 
     let disposable = vscode.commands.registerCommand('do', (args) => {
-        actionDispatcher.dispatchAction(args);
+        doInstance.dispatchAction(args);
     });
+
+    if(doInstance.settings.onStart){
+        
+    }
 
     context.subscriptions.push(disposable);
 }

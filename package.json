@@ -1,8 +1,10 @@
 {
     "name": "do",
-    "displayName": "do",
+    "displayName": "Do",
     "description": "quick and dirty automation",
     "version": "0.0.1",
+    "repository": "https://github.com/dasdeck/do",
+    "license": "MIT",
     "publisher": "jmanuels",
     "engines": {
         "vscode": "^1.17.0"

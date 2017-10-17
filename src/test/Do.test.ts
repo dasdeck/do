@@ -1,7 +1,7 @@
 /* eslint-env mocha */
 
-import ActionDispatcher from '../ActionDispatcher';
-import { cloneDeep, last } from 'lodash';
+import Do from '../Do';
+import { cloneDeep, last, isEqual } from 'lodash';
 import * as sinon from 'sinon';
 import * as vscode from 'vscode';
 import * as assert from 'assert';
@@ -11,15 +11,17 @@ import * as assert from 'assert';
 let mockSettings = cloneDeep(vscode.workspace.getConfiguration('do'));
 let commandSpy = sinon.spy(vscode.commands, 'executeCommand');
 let shellSpy = sinon.spy(require('child_process'), 'exec');
+let createTerminalSpy = sinon.spy(vscode.window, 'createTerminal');
 let dispatcher;
 
 
 describe('ActionDispatcher', () => {
 
     beforeEach(() => {
+        mockSettings.defaultType = "terminal";
         commandSpy.reset();
         shellSpy.reset();
-        dispatcher = new ActionDispatcher();
+        dispatcher = new Do();
         dispatcher.getSettings = sinon.stub().returns(mockSettings);
     });
 
@@ -31,12 +33,20 @@ describe('ActionDispatcher', () => {
         dispatcher.dispatchAction(command, () => {
 
             assert.equal(shellSpy.called, true);
-            assert.deepEqual(last(shellSpy.args), [command]);
+            assert(shellSpy.args.some(args => isEqual([command], args)));
             done();
         });
-
-
     });
+
+    it('simple string command, default setting is terminal', (done) => {
+
+        const command = 'echo "hello world"';
+        dispatcher.dispatchAction(command, () => {
+            assert.equal(createTerminalSpy.called, true);
+            done();
+        });
+    });
+
     it('all list items will get executed', (done) => {
 
         dispatcher.dispatchAction([
