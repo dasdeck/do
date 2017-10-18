@@ -16,6 +16,10 @@ export default class ActionDispatcher {
     private allCommands: Array<string> = null;
     private tempActions = {};
 
+    constructor(){
+        vscode.window.showInformationMessage('do:ready!');
+    }
+
     public dispatchAction(action: Array<any> | Object | String, done?: (result) => (any)) {
 
         if (!this.allCommands) {
@@ -74,9 +78,15 @@ export default class ActionDispatcher {
                 cp.exec(action.command).on('exit', done);
                 break;
             case 'terminal':
+                // if (!action.keep && action.terminal) {
+                //     action.terminal.hide();
+                //     action.terminal.dispose();
+                //     delete action.terminal;
+                // }
                 action.terminal = action.terminal || vscode.window.createTerminal("do:" + action.command);
                 action.terminal.action = action;
                 action.terminal.show();
+                vscode.commands.executeCommand("workbench.action.terminal.clear");
                 action.terminal.sendText(action.command);
                 done();
                 break;
