@@ -13,40 +13,39 @@ export default class ActionDispatcher {
         return this.getSettings();
     }
 
-    private allCommands: Array<string> = null;
+    private allCommands: Array < string > = null;
     private tempActions = {};
 
-    constructor(){
+    constructor() {
         vscode.window.showInformationMessage('do:ready!');
     }
 
-    public dispatchAction(action: Array<any> | Object | String, done?: (result) => (any)) {
+    public dispatchAction(action: Array < any > | Object | String, done ? : (result) => (any), result ? : any) {
 
         if (!this.allCommands) {
             this.loadCommands(() => {
-                this.dispatchAction(action, done);
+                this.dispatchAction(action, done, result);
             });
-        }
-        else {
+        } else {
             if (Array.isArray(action)) {
-                this.dispatchAcionList(action, done);
+                this.dispatchAcionList(action, done, result);
             } else if (typeof action === 'string') {
                 if (this.settings.macros[action]) {
-                    this.dispatchAction(this.settings.macros[action], done);
+                    this.dispatchAction(this.settings.macros[action], done, result);
                 } else if (this.allCommands.indexOf(action) >= 0) {
                     vscode.commands.executeCommand(action).then(done);
                 } else {
                     const type = this.settings.defaultType || "eval";
                     this.tempActions[action] = this.tempActions[action] || { type, command: action };
-                    this.dispatchAction(this.tempActions[action], done);
+                    this.dispatchAction(this.tempActions[action], done, result);
                 }
             } else if (typeof action === "object") {
-                this.dispatchActionObject(action, done);
+                this.dispatchObject(action, done, result);
             }
         }
     }
 
-    private dispatchAcionList(list, done) {
+    protected dispatchAcionList(list, done, result) {
         let jobs = [];
         if (!this.allCommands) {
             jobs.push(done => this.loadCommands(done));
@@ -62,7 +61,46 @@ export default class ActionDispatcher {
         async.series(jobs);
     }
 
-    protected dispatchActionObject(action, done) {
+    protected dispatchObject(action, done, lastResult) {
+
+        if (action.type) {
+
+            this.dispatchActionObject(action, done, lastResult);
+        } else {
+            const expressions = Object.keys(action);
+            if (expressions.length === 1) {
+                const expression = this.resolveConfigVars(expressions[0]);
+                const nextOperation = action[expression];
+                let result;
+                try {
+                    result = eval(expression);
+                } catch (e) {
+                    if (lastResult && action[lastResult]) {
+                        this.dispatchAction(action[lastResult], done, result);
+                        return;
+                    } else {
+                        vscode.window.showErrorMessage("do: expression error:", e.message);
+                    }
+                }
+
+                if (result) {
+                    this.dispatchAction(action[expression], done, result);
+                } else {
+                    done();
+                }
+            } else if (expressions.length > 1) {
+                if (lastResult && action[lastResult]) {
+                    this.dispatchAction(action[lastResult], done);
+                } else {
+
+                }
+            }
+        }
+
+    }
+
+    protected dispatchActionObject(action, done, result) {
+
         if (!action.command) {
             vscode.window
                 .showErrorMessage("do: action objects need a command:" + JSON.stringify(action))
@@ -73,16 +111,12 @@ export default class ActionDispatcher {
                 action.command;
             action.command = this.resolveConfigVars(action.command);
         }
+
         switch (action.type) {
             case 'shell':
                 cp.exec(action.command).on('exit', done);
                 break;
             case 'terminal':
-                // if (!action.keep && action.terminal) {
-                //     action.terminal.hide();
-                //     action.terminal.dispose();
-                //     delete action.terminal;
-                // }
                 action.terminal = action.terminal || vscode.window.createTerminal("do:" + action.command);
                 action.terminal.action = action;
                 action.terminal.show();
@@ -114,7 +148,7 @@ export default class ActionDispatcher {
         }
     }
 
-    loadCommands(done) {
+    protected loadCommands(done) {
         vscode.commands.getCommands().then(newAllCommands => {
             this.allCommands = newAllCommands;
             if (done) {
@@ -123,8 +157,9 @@ export default class ActionDispatcher {
         });
     }
 
-    resolveConfigVars(input) {
+    protected resolveConfigVars(input) {
         const map = {
+            "${languageId}": vscode.window.activeTextEditor ? vscode.window.activeTextEditor.document.languageId : '',
             "${file}": vscode.window.activeTextEditor ? vscode.window.activeTextEditor.document.fileName : '',
             "${fileDirname}": vscode.window.activeTextEditor ? path.dirname(vscode.window.activeTextEditor.document.fileName) : '',
             "${workspaceFolder}": vscode.workspace.rootPath ? vscode.workspace.rootPath : "."

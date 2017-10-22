@@ -23,6 +23,13 @@
             "problemMatcher": [
                 "$tsc-watch"
             ]
+        },
+        {
+            "type": "npm",
+            "script": "eslint",
+            "problemMatcher": [
+                "$eslint-stylish"
+            ]
         }
     ]
 }

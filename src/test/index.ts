@@ -17,7 +17,7 @@ import * as testRunner from 'vscode/lib/testrunner';
 testRunner.configure({
     ui: 'bdd', 		// the TDD UI is being used in extension.test.ts (suite, test, etc.)
     useColors: true,
-    timeout:1000000 // colored output from test results
+    timeout:3000 // colored output from test results
 });
 
 module.exports = testRunner;
