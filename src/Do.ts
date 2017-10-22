@@ -16,8 +16,29 @@ export default class ActionDispatcher {
     private allCommands: Array < string > = null;
     private tempActions = {};
 
+    private output = vscode.window.createOutputChannel('Do');
+
     constructor() {
-        vscode.window.showInformationMessage('do:ready!');
+        this.log('do:ready!');
+    }
+
+    private error(err){
+        if(this.settings.verbose)
+        {
+            vscode.window.showErrorMessage(err);
+        }    
+
+        this.output.show();
+        this.output.appendLine(err);
+    }
+
+    private log(message) {
+        if(this.settings.verbose)
+    {
+        vscode.window.showInformationMessage(message);
+    }        
+        this.output.show();
+        this.output.appendLine(message);
     }
 
     public dispatchAction(action: Array < any > | Object | String, done ? : (result) => (any), result ? : any) {
@@ -79,7 +100,7 @@ export default class ActionDispatcher {
                         this.dispatchAction(action[lastResult], done, result);
                         return;
                     } else {
-                        vscode.window.showErrorMessage("do: expression error:", e.message);
+                        this.error("do: expression error: "+ e.message);
                     }
                 }
 

@@ -1,4 +1,3 @@
-import Do from './Do';
 import * as vscode from 'vscode';
 
 interface ActionCallback {
@@ -33,7 +32,6 @@ export default class ActionCue {
         } else {
             this.running = false;
             this.listeners.forEach(done => done());
-            vscode.window.showInformationMessage('do:done!');
         }
 
     }

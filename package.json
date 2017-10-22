@@ -2,7 +2,7 @@
     "name": "do",
     "displayName": "Do",
     "description": "quick and dirty automation",
-    "version": "0.0.3",
+    "version": "0.0.4",
     "repository": "https://github.com/dasdeck/do",
     "license": "MIT",
     "publisher": "jmanuels",
@@ -17,15 +17,48 @@
     ],
     "main": "./out/extension",
     "contributes": {
-        "commands": [
-            {
-                "command": "do",
-                "title": "do"
+        "configuration": {
+            "type": "object",
+            "title": "TypeScript configuration",
+            "properties": {
+                "do.verbose": {
+                    "type":"boolean",
+                    "default":false,
+                    "description": "causes Do to print errors and messages into message boxes"
+                },
+                "do.defaultType":{
+                    "type":"string",
+                    "default":"terminal",
+                    "enum": [
+                        "terminal",
+                        "shell",
+                        "task",
+                        "command",
+                        "eval",
+                        "alert"
+                    ],
+                    "description": "the default action type to use on string operations"
+                },
+                "do.macros":{
+                    "type":"object",
+                    "default":{},
+                    "description": "a set of predefined action to be used in other actions"
+                },
+                "do.onStart":{
+                    "type":["object","string","array","null"],
+                    "default":null,
+                    "description":"an action (which also include array-actions) to run on vscode startup"
+
+                }
             }
-        ]
+        },
+        "commands": [{
+            "command": "do",
+            "title": "do"
+        }]
     },
     "scripts": {
-        "eslint":"eslint .",
+        "eslint": "eslint .",
         "vscode:prepublish": "npm run compile",
         "compile": "tsc -p ./",
         "watch": "tsc -watch -p ./",
