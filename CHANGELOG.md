@@ -1,5 +1,8 @@
 # Change Log
 
+- 0.0.5
+  - added: icon
+  - added: documentation
 - 0.0.4
   - added: verbose option to show meesages in alert boxes (was default, now diasbled)
   - added: registered all opton sin contributionpoints

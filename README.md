@@ -61,15 +61,47 @@ useage:
 }
 ```
 
-## about simple string actions
+### conditional statements
+
+#### 'if' statements
 
 ```javascript
 {
     "key": "ctrl+cmd+a",
     "command": "do",
-    "args": "echo 'Hello Terminal!'" //uses terminal to execute by default, assuming "do.defaultType":"terminal" (default)
+    "args": {
+        "${languageId} === 'javascript'":{
+            "type":"terminal",
+            "command":"echo 'this runs only if current language is javascrip'"
+        }
+    }
 }
 ```
+
+#### 'switch' statement
+
+```javascript
+{
+    "key": "ctrl+cmd+a",
+    "command": "do",
+    "args": {
+        "${languageId}":{
+            "php":"echo 'run this if language is php'",
+            "javascript": [
+                "echo 'run this when langauga is javascript'",
+                {
+                    "type":"eval",
+                    "command": [
+                        "console.log('this runs also when language is javascript')"
+                    ]
+                }
+            ]
+        }
+    }
+}
+```
+
+### about string actions
 
 As we have learned, actions can be defined either as an `array` (a list of actions), an `object`d
  (a specific type of action) or by simple `string`.
@@ -125,6 +157,29 @@ Aside from the regular node environment you can also use vscodes extension api.
       "var someJavascript = 'executed in the node.js environment of vscode'",
       "fs.writeFileSync(path.join(${fileDirname},"someFilename.txt"),someJavascript)"
   ]
+}
+```
+
+### task
+
+run one of the available tasks.
+
+```javascript
+{
+  "type":"task",
+  "command":"npm: buil" //will look for the npm build script and execute it after creating settings
+}
+```
+
+### command
+
+run a vscode command.
+
+```javascript
+{
+  "type":"command",
+  "command":"renameFile",
+  "args":"${file}"
 }
 ```
 
@@ -213,14 +268,14 @@ With power comes responsebility ;)
 
 ## Release Notes
 
-### 1.0.0
+### 0.0.5
 
 Initial release of Do
 
 ### TODO
-- [ ] switch: language
-- [ ] focus last terminal and clear before reuse
-- [ ] remove terminals before create new ones
+- [x] switch: language
+- [x] focus last terminal and clear before reuse
+- [x] remove terminals before create new ones
 - [ ] add simple watchers
 - [ ] use for autoruns onDidChangeWorkspaceFolders ?
 - [ ] make things disposable (save resources)
@@ -228,3 +283,4 @@ Initial release of Do
 - [x] check async seriality
 - [ ] pass on results to next func?
 - [x] pass filename to commands
+- [ ] put all example into tests
