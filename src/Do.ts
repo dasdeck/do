@@ -19,34 +19,37 @@ export default class ActionDispatcher {
     private output = vscode.window.createOutputChannel('Do');
 
     constructor() {
-        this.log('do:ready!');
+        this.log('ready');
     }
 
-    private error(...args){
-        args.forEach(message => {
-            if(typeof message === 'object') {
-                message = JSON.stringify(message, null , 4);
+    private console(args) {
+        args.unshift('Do:');
+        args = args.map(m => {
+            if(typeof m === 'object') {
+                return "\n" + JSON.stringify(m, null , 4) + "\n";
+            } else {
+                return m;
             }
-            if(this.settings.verbose){
-                vscode.window.showErrorMessage(message);
-            }        
-            this.output.show();
-            this.output.appendLine(message);
         });
+        
+        const message = args.join(' ');
+        this.output.show();
+        this.output.append(message + '\n');
+        return message;
     }
 
-    private log(...args) {
-        args.forEach(message => {
-            if(typeof message === 'object') {
-                message = JSON.stringify(message, null , 4);
-            }
+    public error(...args){
+        const message = this.console(args);
+        if(this.settings.verbose) {
+            vscode.window.showErrorMessage(message);
+        }   
+    }
 
-            if(this.settings.verbose) {
-                vscode.window.showInformationMessage(message);
-            }        
-            this.output.show();
-            this.output.appendLine(message);
-        });
+    public log(...args) {
+        const message = this.console(args);
+        if(this.settings.verbose) {
+            vscode.window.showInformationMessage(message);
+        }   
     }
 
     public dispatchAction(action: Array < any > | Object | String, done ? : (result) => (any), result ? : any) {
@@ -72,7 +75,7 @@ export default class ActionDispatcher {
                 this.dispatchObject(action, done, result);
             }
             else{
-                this.error('do: action seems malformed',action);
+                this.error('action seems malformed:',action);
                 if(done){
                     done(null);
                 }
@@ -137,9 +140,14 @@ export default class ActionDispatcher {
                         return;
                     } else if (action.default) {
                         this.dispatchAction(action.default, done, result);
-                    } else {
-                        this.error("do: expression error: ", expression , e , action);
+                    } else if(lastResult && !action.default){
+                        this.error("no switch case for handling:",  lastResult, action);
                         done();
+                        return;
+                    } else {
+                        this.error("possible expression error: ", expression , e , action);
+                        done();
+                        return;
                     }
                 }
 
@@ -154,12 +162,12 @@ export default class ActionDispatcher {
                 } else if (action.default) {
                     this.dispatchAction(action.default, done, lastResult);
                 } else {
-                    this.error("do: switch value not found for: ", lastResult, 'in: ',action);
+                    this.error("switch value not found for: ", lastResult, 'in: ',action);
                     done();
                 }
             }
             else {
-                this.error('do: command seems malformed:', action);
+                this.error('command seems malformed:', action);
                 if(done) {
                     done(null);
                 }
@@ -173,7 +181,7 @@ export default class ActionDispatcher {
         const quotedTypes = ['eval'];
         if (!action.command) {
             vscode.window
-                .showErrorMessage("do: action objects need a command:" + JSON.stringify(action))
+                .showErrorMessage("action objects need a command:" + JSON.stringify(action))
                 .then(done);
         } else {
             action.command = Array.isArray(action.command) ?
@@ -187,7 +195,7 @@ export default class ActionDispatcher {
                 cp.exec(action.command).on('exit', done);
                 break;
             case 'terminal':
-                action.terminal = action.terminal || vscode.window.createTerminal("do:" + action.command);
+                action.terminal = action.terminal || vscode.window.createTerminal("Do:" + action.command);
                 action.terminal.action = action;
                 action.terminal.show();
                 vscode.commands.executeCommand("workbench.action.terminal.clear");

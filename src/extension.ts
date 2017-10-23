@@ -10,15 +10,15 @@ export function activate(context: vscode.ExtensionContext) {
     let disposable = vscode.commands.registerCommand('do', (args) => {
 
         cue.push(done => {
-            doInstance.dispatchAction(args,() => {
+            doInstance.dispatchAction(args, () => {
                 done();
-                vscode.window.showInformationMessage('do:done!');
+                doInstance.log('done:', args);
             });
         });
-        
+
     });
 
-    if(doInstance.settings.onStart) {
+    if (doInstance.settings.onStart) {
         doInstance.dispatchAction(doInstance.settings.onStart);
     }
 
@@ -31,7 +31,7 @@ export function deactivate() {
 vscode.window.onDidCloseTerminal(terminal => {
 
     let term = <any>terminal;
-    if(term.action) {
+    if (term.action) {
         delete term.action.terminal;
         delete term.action;
     }
