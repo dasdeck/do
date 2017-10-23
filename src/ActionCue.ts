@@ -30,8 +30,9 @@ export default class ActionCue {
             const action = this.actions.shift();
             action((res) => this.step(res), res);
         } else {
+            this.listeners.forEach(callback => callback());
+            this.listeners = [];
             this.running = false;
-            this.listeners.forEach(done => done());
         }
 
     }

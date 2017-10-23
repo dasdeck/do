@@ -22,23 +22,31 @@ export default class ActionDispatcher {
         this.log('do:ready!');
     }
 
-    private error(err){
-        if(this.settings.verbose)
-        {
-            vscode.window.showErrorMessage(err);
-        }    
-
-        this.output.show();
-        this.output.appendLine(err);
+    private error(...args){
+        args.forEach(message => {
+            if(typeof message === 'object') {
+                message = JSON.stringify(message, null , 4);
+            }
+            if(this.settings.verbose){
+                vscode.window.showErrorMessage(message);
+            }        
+            this.output.show();
+            this.output.appendLine(message);
+        });
     }
 
-    private log(message) {
-        if(this.settings.verbose)
-    {
-        vscode.window.showInformationMessage(message);
-    }        
-        this.output.show();
-        this.output.appendLine(message);
+    private log(...args) {
+        args.forEach(message => {
+            if(typeof message === 'object') {
+                message = JSON.stringify(message, null , 4);
+            }
+
+            if(this.settings.verbose) {
+                vscode.window.showInformationMessage(message);
+            }        
+            this.output.show();
+            this.output.appendLine(message);
+        });
     }
 
     public dispatchAction(action: Array < any > | Object | String, done ? : (result) => (any), result ? : any) {
@@ -54,7 +62,7 @@ export default class ActionDispatcher {
                 if (this.settings.macros[action]) {
                     this.dispatchAction(this.settings.macros[action], done, result);
                 } else if (this.allCommands.indexOf(action) >= 0) {
-                    vscode.commands.executeCommand(action).then(done);
+                    this.dispatchAction({"type":"command","command":action},done,result);
                 } else {
                     const type = this.settings.defaultType || "eval";
                     this.tempActions[action] = this.tempActions[action] || { type, command: action };
@@ -63,7 +71,36 @@ export default class ActionDispatcher {
             } else if (typeof action === "object") {
                 this.dispatchObject(action, done, result);
             }
+            else{
+                this.error('do: action seems malformed',action);
+                if(done){
+                    done(null);
+                }
+            }
         }
+    }
+
+    protected getVariables(){
+        return {
+            "languageId": vscode.window.activeTextEditor ? vscode.window.activeTextEditor.document.languageId : '',
+            "file": vscode.window.activeTextEditor ? vscode.window.activeTextEditor.document.fileName : '',
+            "fileDirname": vscode.window.activeTextEditor ? path.dirname(vscode.window.activeTextEditor.document.fileName) : '',
+            "workspaceFolder": vscode.workspace.rootPath ? vscode.workspace.rootPath : "."
+        };
+    }
+
+    protected eval(expression) {
+        const map = this.getVariables();
+
+        //clean up template variable usage
+        expression = this.resolveConfigVars(expression,false);
+
+        const res = (new Function(`with(this)
+        {
+            return ${expression};
+        }`).bind(map))();
+        return res;
+
     }
 
     protected dispatchAcionList(list, done, result) {
@@ -85,22 +122,24 @@ export default class ActionDispatcher {
     protected dispatchObject(action, done, lastResult) {
 
         if (action.type) {
-
             this.dispatchActionObject(action, done, lastResult);
         } else {
             const expressions = Object.keys(action);
             if (expressions.length === 1) {
-                const expression = this.resolveConfigVars(expressions[0]);
+                const expression = expressions[0];
                 const nextOperation = action[expression];
                 let result;
                 try {
-                    result = eval(expression);
+                    result = this.eval(expression);
                 } catch (e) {
                     if (lastResult && action[lastResult]) {
                         this.dispatchAction(action[lastResult], done, result);
                         return;
+                    } else if (action.default) {
+                        this.dispatchAction(action.default, done, result);
                     } else {
-                        this.error("do: expression error: "+ e.message);
+                        this.error("do: expression error: ", expression , e , action);
+                        done();
                     }
                 }
 
@@ -112,8 +151,17 @@ export default class ActionDispatcher {
             } else if (expressions.length > 1) {
                 if (lastResult && action[lastResult]) {
                     this.dispatchAction(action[lastResult], done);
+                } else if (action.default) {
+                    this.dispatchAction(action.default, done, lastResult);
                 } else {
-
+                    this.error("do: switch value not found for: ", lastResult, 'in: ',action);
+                    done();
+                }
+            }
+            else {
+                this.error('do: command seems malformed:', action);
+                if(done) {
+                    done(null);
                 }
             }
         }
@@ -122,6 +170,7 @@ export default class ActionDispatcher {
 
     protected dispatchActionObject(action, done, result) {
 
+        const quotedTypes = ['eval'];
         if (!action.command) {
             vscode.window
                 .showErrorMessage("do: action objects need a command:" + JSON.stringify(action))
@@ -130,7 +179,7 @@ export default class ActionDispatcher {
             action.command = Array.isArray(action.command) ?
                 action.command.join('\n') :
                 action.command;
-            action.command = this.resolveConfigVars(action.command);
+            action.command = this.resolveConfigVars(action.command, quotedTypes.indexOf(action.type) < 0 );
         }
 
         switch (action.type) {
@@ -146,7 +195,7 @@ export default class ActionDispatcher {
                 done();
                 break;
             case 'eval':
-                eval(action.command);
+                this.eval(action.command);
                 done();
                 break;
             case 'task':
@@ -178,15 +227,12 @@ export default class ActionDispatcher {
         });
     }
 
-    protected resolveConfigVars(input) {
-        const map = {
-            "${languageId}": vscode.window.activeTextEditor ? vscode.window.activeTextEditor.document.languageId : '',
-            "${file}": vscode.window.activeTextEditor ? vscode.window.activeTextEditor.document.fileName : '',
-            "${fileDirname}": vscode.window.activeTextEditor ? path.dirname(vscode.window.activeTextEditor.document.fileName) : '',
-            "${workspaceFolder}": vscode.workspace.rootPath ? vscode.workspace.rootPath : "."
-        };
+    protected resolveConfigVars(input, replaceWithValue:boolean=true) {
+
+        const map = this.getVariables();
         Object.keys(map).forEach(needle => {
-            const replace = map[needle];
+            const replace = replaceWithValue ? map[needle] : needle;
+            needle = '${' + needle +'}';
             input = input.split(needle).join(replace);
         });
         return input;
