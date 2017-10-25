@@ -1,8 +1,8 @@
 {
     "name": "do",
     "displayName": "Do",
-    "description": "quick and dirty automation",
-    "version": "0.0.7",
+    "description": "straight to the metal hack-board",
+    "version": "0.0.8",
     "icon": "logo.png",
     "repository": "https://github.com/dasdeck/do",
     "license": "MIT",

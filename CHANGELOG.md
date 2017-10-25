@@ -1,5 +1,7 @@
 # Change Log
 
+- 0.0.8
+  - refined: verbose settings to not focus output log
 - 0.0.7
   - imporved: error reporting and handling
 - 0.0.6

@@ -33,7 +33,9 @@ export default class ActionDispatcher {
         });
         
         const message = args.join(' ');
-        this.output.show();
+        if(this.settings.verbose){
+            this.output.show();
+        }
         this.output.append(message + '\n');
         return message;
     }
