@@ -18,10 +18,28 @@
     ],
     "main": "./out/extension",
     "contributes": {
+        "menus": {
+            "view/item/context": [
+                
+            ]
+        },
+        "views": {
+            "explorer": [
+                {
+                    "id": "do.macros",
+                    "name": "Do.macros"
+                   
+                }
+            ]
+        },
         "configuration": {
             "type": "object",
             "title": "TypeScript configuration",
             "properties": {
+                "do.showMacrosPane":{
+                    "type":"boolean",
+                    "default":true
+                },
                 "do.verbose": {
                     "type":"boolean",
                     "default":false,

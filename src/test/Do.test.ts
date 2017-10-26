@@ -13,9 +13,9 @@ const spies = {
 };
 
 let mockSettings = cloneDeep(vscode.workspace.getConfiguration('do'));
-let dispatcher;
+let app;
 
-describe('ActionDispatcher', () => {
+describe('Do', () => {
 
     beforeEach(() => {
         forEach(spies, (spy, name) => {
@@ -31,9 +31,9 @@ describe('ActionDispatcher', () => {
                 }
             }
         });
-        dispatcher = new Do();
+        app = new Do();
         mockSettings.defaultType = "terminal";
-        dispatcher.getSettings = sinon.stub().returns(mockSettings);
+        app.getSettings = sinon.stub().returns(mockSettings);
     });
 
     it('simple string command, shell settings', done => {
@@ -41,7 +41,7 @@ describe('ActionDispatcher', () => {
         mockSettings.defaultType = "shell";
 
         const command = 'echo "hello world"';
-        dispatcher.dispatchAction(command, () => {
+        app.dispatchAction(command, () => {
 
             assert.equal(spies.exec.called, true);
             assert(spies.exec.args.some(args => isEqual([command], args)));
@@ -52,7 +52,7 @@ describe('ActionDispatcher', () => {
     it('simple string command, default setting is terminal', done => {
 
         const command = 'echo "hello world"';
-        dispatcher.dispatchAction(command, () => {
+        app.dispatchAction(command, () => {
             assert.equal(spies.createTerminal.callCount, 1);
             done();
         });
@@ -60,7 +60,7 @@ describe('ActionDispatcher', () => {
 
     it('all list items will get executed', done => {
 
-        dispatcher.dispatchAction([
+        app.dispatchAction([
             { 'type': 'command', 'command': 'testCommad', 'args': 'testArgs' },
         ], () => {
             assert.equal(spies.executeCommand.callCount, 1);
@@ -70,7 +70,7 @@ describe('ActionDispatcher', () => {
 
     it('2 list items will get executed and sinon knows', done => {
 
-        dispatcher.dispatchAction([
+        app.dispatchAction([
             { 'type': 'command', 'command': 'testCommad', 'args': 'testArgs' },
             { 'type': 'command', 'command': 'testCommad', 'args': 'testArgs' }
         ], () => {
@@ -81,14 +81,14 @@ describe('ActionDispatcher', () => {
 
     it('conditional commands', done => {
 
-        dispatcher.dispatchAction({
+        app.dispatchAction({
             'false': {
                 "type": "terminal"
             }
         }, () => {
             assert.equal(spies.createTerminal.callCount, 0);
 
-            dispatcher.dispatchAction({
+            app.dispatchAction({
                 'true': {
                     "type": "terminal"
                 }
@@ -100,16 +100,41 @@ describe('ActionDispatcher', () => {
 
     });
 
+    it('switch command legacy variables', done => {
+
+
+        sinon.stub(app.dispatcher,'getLanguageId').returns('javascript');
+
+        app.dispatchAction({
+            '${languageId}': {
+                "javascript": "echo 'hi'"
+            }
+        }, () => {
+            assert.equal(spies.createTerminal.callCount, 1);
+            
+            app.dispatchAction({
+                '${languageId}':{
+                    "javascript":["echo 'hi2'","echo 'hi3'"],
+                    "test":"noop"
+                }
+            },() => {
+                assert.equal(spies.createTerminal.callCount, 3);
+                done();
+            });
+        });
+
+    });
+
     it('switch commands', done => {
         
-                dispatcher.dispatchAction({
+                app.dispatchAction({
                     '"javascript"': {
                         "javascript": "echo 'hi'"
                     }
                 }, () => {
                     assert.equal(spies.createTerminal.callCount, 1);
                     
-                    dispatcher.dispatchAction({
+                    app.dispatchAction({
                         '"javascript"':{
                             "javascript":["echo 'hi2'","echo 'hi3'"],
                             "test":"noop"
