@@ -1,4 +1,5 @@
 /* eslint-env mocha */
+'use strict';
 
 import Do from '../Do';
 import { cloneDeep, last, isEqual, forEach } from 'lodash';
@@ -10,6 +11,10 @@ const spies = {
     'exec': < any > require('child_process'),
     'createTerminal': < any > vscode.window,
     'executeCommand': < any > vscode.commands
+};
+
+(Do as any).prototype.getSettings = function() {
+    return mockSettings;
 };
 
 let mockSettings = cloneDeep(vscode.workspace.getConfiguration('do'));
@@ -33,7 +38,6 @@ describe('Do', () => {
         });
         app = new Do();
         mockSettings.defaultType = "terminal";
-        app.getSettings = sinon.stub().returns(mockSettings);
     });
 
     it('simple string command, shell settings', done => {
@@ -102,8 +106,7 @@ describe('Do', () => {
 
     it('switch command legacy variables', done => {
 
-
-        sinon.stub(app.dispatcher,'getLanguageId').returns('javascript');
+        sinon.stub(app.dispatcher, 'getLanguageId').returns('javascript');
 
         app.dispatchAction({
             '${languageId}': {
@@ -111,13 +114,13 @@ describe('Do', () => {
             }
         }, () => {
             assert.equal(spies.createTerminal.callCount, 1);
-            
+
             app.dispatchAction({
-                '${languageId}':{
-                    "javascript":["echo 'hi2'","echo 'hi3'"],
-                    "test":"noop"
+                '${languageId}': {
+                    "javascript": ["echo 'hi2'", "echo 'hi3'"],
+                    "test": "noop"
                 }
-            },() => {
+            }, () => {
                 assert.equal(spies.createTerminal.callCount, 3);
                 done();
             });
@@ -126,25 +129,25 @@ describe('Do', () => {
     });
 
     it('switch commands', done => {
-        
-                app.dispatchAction({
-                    '"javascript"': {
-                        "javascript": "echo 'hi'"
-                    }
-                }, () => {
-                    assert.equal(spies.createTerminal.callCount, 1);
-                    
-                    app.dispatchAction({
-                        '"javascript"':{
-                            "javascript":["echo 'hi2'","echo 'hi3'"],
-                            "test":"noop"
-                        }
-                    },() => {
-                        assert.equal(spies.createTerminal.callCount, 3);
-                        done();
-                    });
-                });
-        
+
+        app.dispatchAction({
+            '"javascript"': {
+                "javascript": "echo 'hi'"
+            }
+        }, () => {
+            assert.equal(spies.createTerminal.callCount, 1);
+
+            app.dispatchAction({
+                '"javascript"': {
+                    "javascript": ["echo 'hi2'", "echo 'hi3'"],
+                    "test": "noop"
+                }
+            }, () => {
+                assert.equal(spies.createTerminal.callCount, 3);
+                done();
             });
+        });
+
+    });
 
 });

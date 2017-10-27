@@ -1,16 +1,56 @@
+'use strict';
+
 import ActionDispatcher from './ActionDispatcher';
 import Macros from './Macros';
+import ActionCue from './ActionCue';
+import Evaluator from './Evaluator';
 
 import * as vscode from 'vscode';
 
-class Do {
+class Do extends vscode.Disposable{
 
+    private cue:ActionCue;
     private dispatcher:ActionDispatcher;
     private output = vscode.window.createOutputChannel('Do');
     public macros:Macros;
+    public evaluator:Evaluator;
+
+    private commandHandle:vscode.Disposable;
 
     constructor() {
+        super(() => {
+            this.dispose();
+        });
+
+        this.evaluator = new Evaluator();
+        this.cue = new ActionCue();
         this.dispatcher = new ActionDispatcher(this);
+
+        if (this.settings.onStart) {
+            this.dispatchAction(this.settings.onStart);
+        }
+
+    }
+
+    public dispose() {
+        if(this.settings.onQuit) {
+            this.dispatchAction(this.settings.onQuit);
+        }
+
+        this.commandHandle.dispose();
+    }
+
+    private register() {
+        this.commandHandle = vscode.commands.registerCommand('do', (args) => {
+            
+                    this.cue.push(done => {
+                        this.dispatchAction(args, () => {
+                            done();
+                            this.log('done:', args);
+                        });
+                    });
+            
+                });
     }
 
     private getSettings(): any {

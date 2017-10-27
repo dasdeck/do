@@ -1,3 +1,4 @@
+'use strict';
 import * as vscode from 'vscode';
 
 class MacroTreeItem extends vscode.TreeItem {
@@ -21,6 +22,8 @@ export default class Macros implements vscode.TreeDataProvider < MacroTreeItem >
         vscode.workspace.onDidChangeConfiguration(() => {
             this.emitter.fire();
         });
+        vscode.window.registerTreeDataProvider('do.macros', new Macros());
+        
     }
 
     public getTreeItem(element ? : MacroTreeItem): MacroTreeItem {

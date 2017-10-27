@@ -1,3 +1,4 @@
+'use strict';
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as cp from 'child_process';
@@ -56,32 +57,7 @@ export default class ActionDispatcher {
         }
     }
 
-    protected getLanguageId() {
-        return vscode.window.activeTextEditor ? vscode.window.activeTextEditor.document.languageId : '';
-    }
 
-    protected getVariables() {
-        return {
-            "languageId": this.getLanguageId(),
-            "file": vscode.window.activeTextEditor ? vscode.window.activeTextEditor.document.fileName : '',
-            "fileDirname": vscode.window.activeTextEditor ? path.dirname(vscode.window.activeTextEditor.document.fileName) : '',
-            "workspaceFolder": vscode.workspace.rootPath ? vscode.workspace.rootPath : "."
-        };
-    }
-
-    protected eval(expression) {
-        const map = this.getVariables();
-
-        //clean up template variable usage
-        expression = this.resolveConfigVars(expression, false);
-
-        const res = (new Function(`with(this)
-        {
-            return ${expression};
-        }`).bind(map))();
-        return res;
-
-    }
 
     protected dispatchAcionList(list, done, result) {
         let jobs = [];
@@ -110,7 +86,7 @@ export default class ActionDispatcher {
                 const nextOperation = action[expression];
                 let result;
                 try {
-                    result = this.eval(expression);
+                    result = this.app.evaluator.eval(expression);
                 } catch (e) {
                     if (lastResult && action[lastResult]) {
                         this.dispatchAction(action[lastResult], done, result);
@@ -161,7 +137,7 @@ export default class ActionDispatcher {
             action.command = Array.isArray(action.command) ?
                 action.command.join('\n') :
                 action.command;
-            action.command = this.resolveConfigVars(action.command, quotedTypes.indexOf(action.type) < 0);
+            action.command = this.app.evaluator.resolveConfigVars(action.command, quotedTypes.indexOf(action.type) < 0);
         }
 
         switch (action.type) {
@@ -178,7 +154,7 @@ export default class ActionDispatcher {
                 break;
             case 'eval':
                 try {
-                    this.eval(action.command);
+                    this.app.evaluator.eval(action.command);
                 } catch (e) {
                     this.app.error('eval error:', e.message);
                 }
@@ -214,14 +190,5 @@ export default class ActionDispatcher {
         });
     }
 
-    protected resolveConfigVars(input, replaceWithValue: boolean = true) {
 
-        const map = this.getVariables();
-        Object.keys(map).forEach(needle => {
-            const replace = replaceWithValue ? map[needle] : needle;
-            needle = '${' + needle + '}';
-            input = input.split(needle).join(replace);
-        });
-        return input;
-    }
 }
