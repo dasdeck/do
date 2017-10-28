@@ -7,6 +7,9 @@ import Evaluator from './Evaluator';
 
 import * as vscode from 'vscode';
 
+interface nodeCallback { (err?: any,res?:any): void; }
+
+
 class Do extends vscode.Disposable{
 
     private cue:ActionCue;
@@ -22,6 +25,9 @@ class Do extends vscode.Disposable{
             this.dispose();
         });
 
+        vscode.workspace.onDidChangeConfiguration(this.configChanged);
+
+        this.macros = new Macros(this);
         this.evaluator = new Evaluator();
         this.cue = new ActionCue();
         this.dispatcher = new ActionDispatcher(this);
@@ -30,6 +36,12 @@ class Do extends vscode.Disposable{
             this.dispatchAction(this.settings.onStart);
         }
 
+
+    }
+
+    public configChanged() {
+        this.dispatcher.configChanged();
+        this.macros.configChanged();
     }
 
     public dispose() {
@@ -40,8 +52,8 @@ class Do extends vscode.Disposable{
         this.commandHandle.dispose();
     }
 
-    private register() {
-        this.commandHandle = vscode.commands.registerCommand('do', (args) => {
+    public register() {
+        this.commandHandle = vscode.commands.registerCommand('do', args => {
             
                     this.cue.push(done => {
                         this.dispatchAction(args, () => {
@@ -84,6 +96,7 @@ class Do extends vscode.Disposable{
         if (this.settings.verbose) {
             vscode.window.showErrorMessage(message);
         }
+        return message;
     }
 
     public log(...args) {
@@ -91,10 +104,27 @@ class Do extends vscode.Disposable{
         if (this.settings.verbose) {
             vscode.window.showInformationMessage(message);
         }
+        return message;
     }
 
-    public dispatchAction(action: Array < any > | Object | String, done ? : (result) => (any), result ? : any) {
-        this.dispatcher.dispatchAction(action,done,result);
+    public dispatchAction(action: Array < any > | Object | String, done ? : nodeCallback, priorReault  : Array<any> = []) {
+
+        return new Promise((resolve, reject) => {
+
+            this.dispatcher.dispatchAction(action, (err, result) => {
+
+                if(done) {
+                    done(err,result);
+                }
+                if(err) {
+                    reject(err);
+                } else {
+                    resolve(result);
+                }
+
+            },priorReault);
+            
+        });
     }
         
 }

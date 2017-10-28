@@ -5,6 +5,8 @@ import * as cp from 'child_process';
 import async from 'async';
 import Do from './Do';
 
+interface nodeCallback { (err?: any,res?:any): void; }
+
 export default class ActionDispatcher {
 
     private tempActions = {};
@@ -27,7 +29,11 @@ export default class ActionDispatcher {
 
     }
 
-    public dispatchAction(action: Array < any > | Object | String, done ? : (result) => (any), result ? : any) {
+    public configChanged() {
+        delete this.allCommands;
+    }
+
+    public dispatchAction(action: Array < any > | Object | String, done ? : nodeCallback, result ? : any) {
 
         if (!this.allCommands) {
             this.loadCommands(() => {
@@ -35,7 +41,7 @@ export default class ActionDispatcher {
             });
         } else {
             if (Array.isArray(action)) {
-                this.dispatchAcionList(action, done, result);
+                this.dispatchAction({type:'array',command:action}, done, result);
             } else if (typeof action === 'string') {
                 if (this.app.settings.macros[action]) {
                     this.dispatchAction(this.app.settings.macros[action], done, result);
@@ -57,22 +63,21 @@ export default class ActionDispatcher {
         }
     }
 
+    protected dispatchAcionList(action, done, result) {
 
-
-    protected dispatchAcionList(list, done, result) {
+        const list = action.command;
         let jobs = [];
+
         if (!this.allCommands) {
             jobs.push(done => this.loadCommands(done));
         }
         list.forEach(action => {
             jobs.push(done => this.dispatchAction(action, done));
         });
-        if (done) {
-            jobs.push(() => {
-                done();
-            });
-        }
-        async.series(jobs);
+       
+        async.series(jobs, (err,res) => {
+            done(err, res);
+        });
     }
 
     protected dispatchObject(action, done, lastResult) {
@@ -99,7 +104,7 @@ export default class ActionDispatcher {
                         return;
                     } else {
                         this.app.error("possible expression error: ", expression, e, action);
-                        done();
+                        done(e);
                         return;
                     }
                 }
@@ -128,48 +133,68 @@ export default class ActionDispatcher {
 
     }
 
+    private stringifyCommand(command, evaluate = false) {
+        command = Array.isArray(command) ?  command.join('\n') : command;
+        return this.app.evaluator.resolveConfigVars(command, evaluate);
+    }
+
     protected dispatchActionObject(action, done, result) {
 
         const quotedTypes = ['eval'];
         if (!action.command) {
-            this.app.error('the action:', action, 'has no command!');
-        } else {
-            action.command = Array.isArray(action.command) ?
-                action.command.join('\n') :
-                action.command;
-            action.command = this.app.evaluator.resolveConfigVars(action.command, quotedTypes.indexOf(action.type) < 0);
-        }
+            const e = this.app.error('the action:', action, 'has no command!');
+            done(e);
+            return;
+        } 
 
         switch (action.type) {
+            case 'array':
+                this.dispatchAcionList(action, done, result);
+                break;
             case 'shell':
-                cp.exec(action.command).on('exit', done);
+                try {
+                    const command = this.stringifyCommand(action.command);
+                    const res = cp.execSync(command, {encoding: 'utf8'});
+                    done(null, res);
+                } catch (e) {
+                    done(e);
+                }
                 break;
             case 'terminal':
-                action.terminal = action.terminal || vscode.window.createTerminal("Do:" + action.command);
+            {
+                const command = this.stringifyCommand(action.command);
+                action.terminal = action.terminal || vscode.window.createTerminal("Do:" + command);
                 action.terminal.action = action;
                 action.terminal.show();
                 vscode.commands.executeCommand("workbench.action.terminal.clear");
-                action.terminal.sendText(action.command);
+                action.terminal.sendText(command);
                 done();
                 break;
+            }
             case 'eval':
                 try {
-                    this.app.evaluator.eval(action.command);
+                    const command = this.stringifyCommand(action.command, false);
+                    const res = this.app.evaluator.eval(command);
+                    done(null,res);
+                    
                 } catch (e) {
                     this.app.error('eval error:', e.message);
+                    done(e);
                 }
-
-                done();
                 break;
             case 'task':
+            {
+                const command = this.stringifyCommand(action.command);
                 this.dispatchAction({
                     type: 'command',
                     command: 'workbench.action.tasks.runTask',
-                    args: 'action.command'
+                    args: command
                 }, done);
                 break;
+            }
             case 'alert':
-                vscode.window.showErrorMessage(action.command)
+                const command = this.stringifyCommand(action.command);
+                vscode.window.showErrorMessage(command)
                     .then(done);
             case 'command':
             default:

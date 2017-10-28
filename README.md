@@ -16,7 +16,7 @@ Inspired by the <3 of [geddski](http://gedd.ski)
 }
 ```
 
-### combine actions to macros (4 commands in series)
+### combine actions to arrays (4 commands in series)
 
 ```javascript
 {
@@ -32,7 +32,7 @@ Inspired by the <3 of [geddski](http://gedd.ski)
             "type": "terminal",
             "command": "echo 'another, more explixit way of saying Hello Terminal!'"
         },
-        "workbench.action.files.openFileFolder" //call a vscode command
+        "workbench.action.closeAllEditors" //call a vscode command
     ]
 }
 ```

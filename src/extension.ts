@@ -5,7 +5,9 @@ import Do from './Do';
 
 export function activate(context: vscode.ExtensionContext) {
 
-    context.subscriptions.push(new Do());
+    const app = new Do();
+    app.register();
+    context.subscriptions.push(app);
 
 }
 

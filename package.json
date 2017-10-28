@@ -36,6 +36,15 @@
             "type": "object",
             "title": "TypeScript configuration",
             "properties": {
+                "do.macros":{
+                    "type":"object",
+                    "default":{},
+                    "description": "a set of predefined action to be used in other actions"
+                },
+                "do.registerMacrosAsCommands":{
+                    "type":"boolean",
+                    "default":false
+                },
                 "do.showMacrosPane":{
                     "type":"boolean",
                     "default":true
@@ -57,11 +66,6 @@
                         "alert"
                     ],
                     "description": "the default action type to use on string operations"
-                },
-                "do.macros":{
-                    "type":"object",
-                    "default":{},
-                    "description": "a set of predefined action to be used in other actions"
                 },
                 "do.onStart":{
                     "type":["object","string","array","null"],
